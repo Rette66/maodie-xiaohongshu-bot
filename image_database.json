@@ -1,0 +1,156 @@
+{
+  "cat1_001": {
+    "id": "cat1_001",
+    "filename": "cat1.jpg",
+    "relative_path": "images/maodie/cat1.jpg",
+    "generation_prompt": "AI生成艺术化写实人像橘色虎斑英短猫",
+    "source": "ai_generated",
+    "expression": "deadpan",
+    "head_shape": "extra_round",
+    "eye_color": "amber",
+    "pose": "front_face",
+    "mood": "serious",
+    "lighting": "natural",
+    "background": "solid_color",
+    "usage": [
+      "daily_post",
+      "reaction"
+    ],
+    "distinctiveness": "medium",
+    "use_count": 0,
+    "last_used": null,
+    "created_at": "2026-05-11T18:24:34.585449"
+  },
+  "cat2_001": {
+    "id": "cat2_001",
+    "filename": "cat2.jpg",
+    "relative_path": "images/maodie/cat2.jpg",
+    "generation_prompt": "橘色虎斑英短猫，略带生气不屑的傲娇表情",
+    "source": "ai_generated",
+    "expression": "disdainful",
+    "head_shape": "extra_round",
+    "eye_color": "amber",
+    "pose": "front_face",
+    "mood": "serious",
+    "lighting": "natural",
+    "background": "solid_color",
+    "usage": [
+      "daily_post",
+      "meme"
+    ],
+    "distinctiveness": "medium",
+    "use_count": 0,
+    "last_used": null,
+    "created_at": "2026-05-11T18:24:34.585764"
+  },
+  "cat3_001": {
+    "id": "cat3_001",
+    "filename": "cat3.jpg",
+    "relative_path": "images/maodie/cat3.jpg",
+    "generation_prompt": "橘色虎斑英短猫，超大圆形眼睛，呆萌可爱",
+    "source": "ai_generated",
+    "expression": "cute",
+    "head_shape": "extra_round",
+    "eye_color": "amber",
+    "pose": "front_face",
+    "mood": "cute",
+    "lighting": "natural",
+    "background": "white",
+    "usage": [
+      "daily_post",
+      "cute"
+    ],
+    "distinctiveness": "medium",
+    "use_count": 1,
+    "last_used": "2026-05-11T18:24:41.802287",
+    "created_at": "2026-05-11T18:24:34.589173"
+  },
+  "image-1-_001": {
+    "id": "image-1-_001",
+    "filename": "image-1---8bab90d6-14bd-4c82-be12-3e243ff78736.png",
+    "relative_path": "images/maodie-generated/image-1---8bab90d6-14bd-4c82-be12-3e243ff78736.png",
+    "generation_prompt": "圆头橘色英短猫，死鱼眼正面无表情，直视镜头",
+    "source": "ai_generated",
+    "expression": "deadpan",
+    "head_shape": "extra_round",
+    "eye_color": "amber",
+    "pose": "front_face",
+    "mood": "serious",
+    "lighting": "natural",
+    "background": "white",
+    "usage": [
+      "daily_post",
+      "reaction",
+      "meme"
+    ],
+    "distinctiveness": "high",
+    "use_count": 1,
+    "last_used": "2026-05-11T18:24:41.802897",
+    "created_at": "2026-05-11T18:24:34.590296"
+  },
+  "image-2-_001": {
+    "id": "image-2-_001",
+    "filename": "image-2---a8f0f31f-94a4-40a8-85fe-00b34d753ce3.png",
+    "relative_path": "images/maodie-generated/image-2---a8f0f31f-94a4-40a8-85fe-00b34d753ce3.png",
+    "generation_prompt": "圆头橘色英短猫，正面肖像",
+    "source": "ai_generated",
+    "expression": "deadpan",
+    "head_shape": "extra_round",
+    "eye_color": "amber",
+    "pose": "front_face",
+    "mood": "calm",
+    "lighting": "natural",
+    "background": "white",
+    "usage": [
+      "daily_post",
+      "reaction"
+    ],
+    "distinctiveness": "high",
+    "use_count": 1,
+    "last_used": "2026-05-11T18:26:28.948639",
+    "created_at": "2026-05-11T18:24:34.591285"
+  },
+  "image-3-_001": {
+    "id": "image-3-_001",
+    "filename": "image-3---6a25eb41-2b41-4901-acc5-2ef2adfd49fe.png",
+    "relative_path": "images/maodie-generated/image-3---6a25eb41-2b41-4901-acc5-2ef2adfd49fe.png",
+    "generation_prompt": "圆头橘色英短猫正面照",
+    "source": "ai_generated",
+    "expression": "deadpan",
+    "head_shape": "extra_round",
+    "eye_color": "amber",
+    "pose": "front_face",
+    "mood": "calm",
+    "lighting": "natural",
+    "background": "white",
+    "usage": [
+      "daily_post"
+    ],
+    "distinctiveness": "high",
+    "use_count": 1,
+    "last_used": "2026-05-11T18:26:28.947860",
+    "created_at": "2026-05-11T18:24:34.593076"
+  },
+  "image-4-_001": {
+    "id": "image-4-_001",
+    "filename": "image-4---72f9c8a3-6af2-4e4d-9761-cbf25234762a.png",
+    "relative_path": "images/maodie-generated/image-4---72f9c8a3-6af2-4e4d-9761-cbf25234762a.png",
+    "generation_prompt": "圆头橘色英短猫正面肖像",
+    "source": "ai_generated",
+    "expression": "deadpan",
+    "head_shape": "extra_round",
+    "eye_color": "amber",
+    "pose": "front_face",
+    "mood": "calm",
+    "lighting": "natural",
+    "background": "white",
+    "usage": [
+      "daily_post",
+      "reaction"
+    ],
+    "distinctiveness": "high",
+    "use_count": 0,
+    "last_used": null,
+    "created_at": "2026-05-11T18:24:34.594314"
+  }
+}

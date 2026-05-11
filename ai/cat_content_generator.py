@@ -1,12 +1,22 @@
 """
-耄耋Official - 猫的内容生成器
+耄耋Official - 猫的内容生成器 V2
 核心思想：猫发什么？表情包为主，偶尔发疯
+支持图片数据库按标签选图
 """
 import random
+import sys
 from typing import List, Dict, Optional
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+
+# 尝试导入图片数据库
+try:
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from image_database import ImageDatabase
+    HAS_DB = True
+except ImportError:
+    HAS_DB = False
 
 
 @dataclass
@@ -18,16 +28,21 @@ class CatContent:
     tags: List[str]        # 标签
     post_time: str         # 发布时间
     mood: str              # 猫的心情
+    image_id: Optional[str] = None  # 图片数据库ID
 
 
 class CatContentGenerator:
     """
-    猫的内容生成器
+    猫的内容生成器 V2
     
     猫会发什么？
     - 80% 表情包（盯着你、哈人、诡异）
     - 10% 纯文字（哈、哈哈、哈哈哈）
     - 10% 突然发疯（连发一堆哈）
+    
+    支持图片数据库：
+    - 优先从数据库按标签选图（辨识度高的图会被优先选中）
+    - 回退到文件夹随机选图
     """
     
     # 内容类型权重
@@ -46,6 +61,13 @@ class CatContentGenerator:
         "mad": ["哈" * 10, "哈" * 15, "哈" * 20],
     }
     
+    # 内容类型 → 图片选择偏好
+    CONTENT_IMAGE_PREFERENCES = {
+        "表情包": {"mood": None},  # 不过滤，让数据库自己选高辨识度的
+        "纯文字": {"mood": "calm"},
+        "突然发疯": {"mood": "crazy"},
+    }
+    
     # 标签库
     TAGS = {
         "core": ["耄耋", "圆头耄耋", "哈人", "抽象"],
@@ -62,9 +84,22 @@ class CatContentGenerator:
         """
         self.image_folder = Path(image_folder)
         self.available_images = self._load_images()
+        
+        # 初始化图片数据库（如果可用）
+        self.image_db = None
+        if HAS_DB:
+            try:
+                # 尝试从项目根目录加载数据库
+                db_path = Path(__file__).parent.parent / "image_database.json"
+                if db_path.exists():
+                    self.image_db = ImageDatabase(str(db_path), "images")
+                    print(f"🗃️ 图片数据库已加载: {len(self.image_db.entries)} 张图片")
+            except Exception as e:
+                print(f"⚠️ 图片数据库加载失败: {e}")
+                self.image_db = None
     
     def _load_images(self) -> List[str]:
-        """加载可用图片"""
+        """加载可用图片（文件夹方式）"""
         if not self.image_folder.exists():
             return []
         
@@ -73,6 +108,49 @@ class CatContentGenerator:
             images.extend(self.image_folder.glob(ext))
         
         return [str(img) for img in images]
+    
+    def _select_image_from_db(self, content_type: str, mood: str) -> tuple:
+        """
+        从图片数据库选择图片
+        
+        Returns:
+            (image_paths: List[str], image_id: str or None)
+        """
+        if not self.image_db or not self.image_db.entries:
+            return self._fallback_image_select(), None
+        
+        try:
+            # 根据内容类型确定选图偏好
+            pref = self.CONTENT_IMAGE_PREFERENCES.get(content_type, {})
+            
+            # 选择条件
+            select_kwargs = {}
+            if pref.get("mood"):
+                select_kwargs["mood"] = pref["mood"]
+            
+            # 表情包类型优先选高辨识度图
+            if content_type == "表情包":
+                select_kwargs["min_distinctiveness"] = "medium"
+            
+            select_kwargs["usage"] = "daily_post"
+            
+            entry = self.image_db.select_image(**select_kwargs)
+            if entry:
+                # 构造完整路径
+                img_root = Path(__file__).parent.parent / "images"
+                img_path = str(img_root / entry.relative_path)
+                return [img_path], entry.id
+        except Exception as e:
+            print(f"⚠️ 数据库选图失败: {e}")
+        
+        return self._fallback_image_select(), None
+    
+    def _fallback_image_select(self) -> List[str]:
+        """回退：从文件夹随机选图"""
+        if not self.available_images:
+            return []
+        num = random.randint(1, min(3, len(self.available_images)))
+        return random.sample(self.available_images, num)
     
     def generate(self, mood: str = None) -> CatContent:
         """
@@ -90,13 +168,14 @@ class CatContentGenerator:
         # 确定内容类型
         content_type = self._get_content_type(hour, mood)
         
-        # 生成内容
+        # 生成内容（同时获取选中的图片ID）
+        img_id = None
         if content_type == "表情包":
-            text, images = self._generate_meme_content(mood)
+            text, images, img_id = self._generate_meme_content(mood, content_type)
         elif content_type == "纯文字":
-            text, images = self._generate_text_content(mood)
+            text, images, img_id = self._generate_text_content(mood, content_type)
         else:  # 突然发疯
-            text, images = self._generate_crazy_content(mood)
+            text, images, img_id = self._generate_crazy_content(mood, content_type)
         
         # 生成标签
         tags = self._generate_tags(mood)
@@ -107,7 +186,8 @@ class CatContentGenerator:
             images=images,
             tags=tags,
             post_time=datetime.now().strftime("%H:%M"),
-            mood=mood
+            mood=mood,
+            image_id=img_id
         )
     
     def _get_mood(self, hour: int) -> str:
@@ -136,20 +216,17 @@ class CatContentGenerator:
             weights=list(self.CONTENT_TYPES.values())
         )[0]
     
-    def _generate_meme_content(self, mood: str) -> tuple:
+    def _generate_meme_content(self, mood: str, content_type: str = "表情包") -> tuple:
         """生成表情包内容"""
         # 纯表情包，不配文字
         text = ""
         
-        # 随机选图片
-        images = []
-        if self.available_images:
-            num = random.randint(1, min(3, len(self.available_images)))
-            images = random.sample(self.available_images, num)
+        # 从数据库选图（优先高辨识度）
+        images, img_id = self._select_image_from_db(content_type, mood)
         
-        return text, images
+        return text, images, img_id
     
-    def _generate_text_content(self, mood: str) -> tuple:
+    def _generate_text_content(self, mood: str, content_type: str = "纯文字") -> tuple:
         """生成纯文字内容"""
         # 根据心情选文字
         if mood in ["crazy", "mad"]:
@@ -159,20 +236,20 @@ class CatContentGenerator:
         else:
             text = random.choice(self.CAT_TEXTS["default"])
         
-        return text, []
+        return text, [], None
     
-    def _generate_crazy_content(self, mood: str) -> tuple:
+    def _generate_crazy_content(self, mood: str, content_type: str = "突然发疯") -> tuple:
         """生成突然发疯内容"""
         # 连发一堆哈
         num_ha = random.randint(5, 25)
         text = "哈" * num_ha
         
-        # 可能也发图
-        images = []
-        if self.available_images and random.random() < 0.3:
-            images = [random.choice(self.available_images)]
+        # 可能也发图（30%概率），从数据库选
+        images, img_id = [], None
+        if random.random() < 0.3:
+            images, img_id = self._select_image_from_db(content_type, mood)
         
-        return text, images
+        return text, images, img_id
     
     def _generate_tags(self, mood: str) -> List[str]:
         """生成标签"""
