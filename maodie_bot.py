@@ -15,7 +15,16 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Optional
 
-from playwright.async_api import Page, BrowserContext
+from playwright.async_api import Page, Browser_context
+
+
+# 尝试导入配置加载器
+try:
+    sys.path.insert(0, str(Path(__file__).parent))
+    from configs.personality_loader import get_cat_config
+    HAS_CONFIG = True
+except ImportError:
+    HAS_CONFIG = False
 
 
 # ============================================================
@@ -24,11 +33,25 @@ from playwright.async_api import Page, BrowserContext
 
 IMAGE_FOLDER = "images/maodie"  # 表情包图片文件夹
 
-# 猫的回复话术
-CAT_REPLIES = ["哈", "哈哈", "哈哈哈", "哈。", ".."]
 
-# 猫的私聊回复话术
-CAT_DM_REPLIES = ["哈", "哈哈", "..", "？", ""]  # "" = 不回复
+def _get_cat_replies():
+    """获取猫的回复话术（从配置）"""
+    if not HAS_CONFIG:
+        return ["哈", "哈哈", "哈哈哈", "哈。", ".."]
+    try:
+        return get_cat_config().reply.phrases.default
+    except Exception:
+        return ["哈", "哈哈", "哈哈哈", "哈。", ".."]
+
+
+def _get_dm_replies():
+    """获取猫的私聊回复话术（从配置）"""
+    if not HAS_CONFIG:
+        return ["哈", "哈哈", "..", "？", ""]
+    try:
+        return get_cat_config().reply.dm_phrases
+    except Exception:
+        return ["哈", "哈哈", "..", "？", ""]
 
 
 # ============================================================
@@ -40,56 +63,96 @@ class CatLogic:
 
     @staticmethod
     def should_post() -> bool:
-        """猫要不要发内容？"""
-        hour = datetime.now().hour
-        if 8 <= hour < 18:
-            return random.random() < 0.05       # 白天5%
-        elif 18 <= hour < 23:
-            return random.random() < 0.15       # 傍晚15%
-        elif 23 <= hour or hour < 2:
-            return random.random() < 0.35       # 深夜35%
-        else:
-            return random.random() < 0.7        # 凌晨2-4点70%
+        """猫要不要发内容？（从配置读取）"""
+        if not HAS_CONFIG:
+            hour = datetime.now().hour
+            if 8 <= hour < 18:
+                return random.random() < 0.05
+            elif 18 <= hour < 23:
+                return random.random() < 0.15
+            elif 23 <= hour or hour < 2:
+                return random.random() < 0.35
+            else:
+                return random.random() < 0.7
+        try:
+            cfg = get_cat_config()
+            hour = datetime.now().hour
+            for entry in cfg.post.schedule:
+                if entry.hour_start <= hour < entry.hour_end:
+                    return random.random() < entry.probability
+            return False
+        except Exception:
+            return random.random() < 0.1
 
     @staticmethod
     def should_reply_comment(comment_text: str = "") -> bool:
-        """猫要不要回复评论？"""
-        if len(comment_text) > 50:
-            return random.random() < 0.02       # 长评论几乎不回
-        hour = datetime.now().hour
-        if 8 <= hour < 18:
-            return random.random() < 0.03       # 白天3%
-        elif 23 <= hour or hour < 4:
-            return random.random() < 0.15       # 深夜15%
-        return random.random() < 0.08
+        """猫要不要回复评论？（从配置读取）"""
+        if not HAS_CONFIG:
+            if len(comment_text) > 50:
+                return random.random() < 0.02
+            hour = datetime.now().hour
+            if 8 <= hour < 18:
+                return random.random() < 0.03
+            elif 23 <= hour or hour < 4:
+                return random.random() < 0.15
+            return random.random() < 0.08
+        try:
+            cfg = get_cat_config()
+            if len(comment_text) > cfg.reply.max_comment_length:
+                return random.random() < cfg.reply.probability_long_comment
+            hour = datetime.now().hour
+            if 8 <= hour < 18:
+                return random.random() < cfg.reply.probability_day
+            elif 23 <= hour or hour < 4:
+                return random.random() < cfg.reply.probability_night
+            return random.random() < cfg.reply.probability_evening
+        except Exception:
+            return random.random() < 0.08
 
     @staticmethod
     def should_reply_dm(dm_text: str = "") -> bool:
-        """猫要不要回复私聊？"""
-        # 猫几乎不回私聊
-        return random.random() < 0.03
+        """猫要不要回复私聊？（从配置读取）"""
+        if not HAS_CONFIG:
+            return random.random() < 0.03
+        try:
+            return random.random() < get_cat_config().reply.probability_day
+        except Exception:
+            return random.random() < 0.03
 
     @staticmethod
     def get_reply() -> Optional[str]:
-        """猫回复什么？"""
-        return random.choice(CAT_REPLIES)
+        """猫回复什么？（从配置读取）"""
+        return random.choice(_get_cat_replies())
 
     @staticmethod
     def get_dm_reply() -> Optional[str]:
-        """猫私聊回复什么？"""
-        reply = random.choice(CAT_DM_REPLIES)
+        """猫私聊回复什么？（从配置读取）"""
+        reply = random.choice(_get_dm_replies())
         return reply if reply else None
 
     @staticmethod
     def get_post_text() -> str:
-        """猫发什么文字？"""
-        r = random.random()
-        if r < 0.7:
-            return ""                            # 70%不配文（纯表情包）
-        elif r < 0.9:
-            return random.choice(["哈", "哈哈", "哈哈哈"])
-        else:
-            return "哈" * random.randint(5, 20)  # 10%突然发疯
+        """猫发什么文字？（从配置读取）"""
+        if not HAS_CONFIG:
+            r = random.random()
+            if r < 0.7:
+                return ""
+            elif r < 0.9:
+                return random.choice(["哈", "哈哈", "哈哈哈"])
+            else:
+                return "哈" * random.randint(5, 20)
+        try:
+            cfg = get_cat_config()
+            r = random.random()
+            texts = cfg.post.texts
+            if r < 0.7:
+                return ""
+            elif r < 0.9:
+                return random.choice(texts.default)
+            else:
+                return "哈" * random.randint(cfg.post.crazy_text_min_ha, cfg.post.crazy_text_max_ha)
+        except Exception:
+            return "哈"
 
     @staticmethod
     def get_tags() -> List[str]:
@@ -121,6 +184,7 @@ class XHSBrowser:
     """小红书浏览器操作"""
 
     BASE_URL = "https://www.xiaohongshu.com"
+    CREATOR_URL = "https://creator.xiaohongshu.com"
 
     def __init__(self):
         self.playwright = None
@@ -180,29 +244,29 @@ class XHSBrowser:
         await asyncio.sleep(random.uniform(2, 4))
 
     async def is_logged_in(self) -> bool:
-        """检查是否已登录"""
+        """检查是否已登录（检查创作者平台）"""
         try:
-            await self.goto(self.BASE_URL)
-            # 如果页面上没有"登录"按钮，说明已登录
+            await self.goto(f"{self.CREATOR_URL}/user/profile/home")
+            await asyncio.sleep(2)
+            # 如果页面上没有登录按钮或跳转到登录页，说明已登录
             login_btn = await self.page.query_selector('text="登录"')
-            return login_btn is None
+            if login_btn:
+                return False
+            # 检查是否有创作者平台特有的元素
+            current_url = self.page.url
+            return "/login" not in current_url
         except Exception:
             return False
 
     async def login_by_qr(self) -> bool:
         """二维码登录"""
         print("📱 请扫描二维码登录...")
-        await self.goto(self.BASE_URL)
+        await self.goto(f"{self.CREATOR_URL}/login")
 
         try:
-            login_btn = await self.page.wait_for_selector('text="登录"', timeout=10000)
-            if login_btn:
-                await login_btn.click()
-                await asyncio.sleep(2)
-
             # 等待二维码出现
             await self.page.wait_for_selector(
-                'canvas, img[class*="qr"], [class*="qrcode"]',
+                'canvas, img[class*="qr"], [class*="qrcode"], [class*="qr-code"]',
                 timeout=10000
             )
             print("📷 二维码已显示，请用小红书APP扫描")
@@ -321,38 +385,31 @@ class AutoPoster:
             return False
 
     async def _open_publish_page(self):
-        """打开发布页面"""
-        # 点击发布按钮
-        publish_btn = await self.page.wait_for_selector(
-            'text="发布"', timeout=10000
-        )
-        if publish_btn:
-            await publish_btn.click()
-            await asyncio.sleep(2)
-
-        # 选择图文笔记
-        img_btn = await self.page.wait_for_selector(
-            'text="图文"', timeout=10000
-        )
-        if img_btn:
-            await img_btn.click()
-            await asyncio.sleep(2)
+        """打开发布页面 - 直接跳转到创作者平台发布页"""
+        # 直接导航到创作者平台的图文发布页
+        await self.browser.goto(f"{self.browser.CREATOR_URL}/publish/publish?target=image")
+        await asyncio.sleep(3)
 
     async def _upload_images(self, images: List[str]):
         """上传图片"""
+        # 等待文件上传控件出现
         file_input = await self.page.wait_for_selector(
-            'input[type="file"]', timeout=10000
+            'input[type="file"]',
+            timeout=15000
         )
         if file_input:
             await file_input.set_input_files(images)
             print(f"  📷 上传 {len(images)} 张图片...")
-            # 等待上传完成
+            # 等待上传完成 - 图片需要时间处理
             await asyncio.sleep(5)
 
     async def _fill_title(self, title: str):
-        """填写标题"""
+        """填写标题（小红书标题最多20字）"""
+        title = title[:20] if len(title) > 20 else title
         title_input = await self.page.wait_for_selector(
-            'input[placeholder*="标题"], [class*="title"] input, [class*="title"] textarea',
+            'input[placeholder="填写标题会有更多赞哦"], '
+            'input[placeholder*="填写标题"], '
+            'input[placeholder*="标题"]',
             timeout=10000
         )
         if title_input:
@@ -361,42 +418,61 @@ class AutoPoster:
 
     async def _fill_content(self, content: str):
         """填写正文"""
-        content_input = await self.page.query_selector(
-            'textarea[placeholder*="正文"], [contenteditable="true"]'
+        content_input = await self.page.wait_for_selector(
+            'textarea[placeholder="输入正文摘录"], '
+            'textarea[placeholder*="正文摘录"], '
+            'textarea[placeholder*="输入正文"], '
+            'textarea[placeholder*="正文"]',
+            timeout=10000
         )
         if content_input:
             await content_input.fill(content)
             await asyncio.sleep(1)
 
     async def _add_tags(self, tags: List[str]):
-        """添加标签"""
-        tag_text = " " + " ".join([f"#{tag}" for tag in tags])
-        content_input = await self.page.query_selector(
-            'textarea[placeholder*="正文"], [contenteditable="true"]'
+        """添加标签 - 追加到正文末尾"""
+        if not tags:
+            return
+        tag_text = "\n\n" + " ".join([f"#{tag}" for tag in tags])
+        content_input = await self.page.wait_for_selector(
+            'textarea[placeholder="输入正文摘录"], '
+            'textarea[placeholder*="正文摘录"], '
+            'textarea[placeholder*="输入正文"], '
+            'textarea[placeholder*="正文"]',
+            timeout=10000
         )
         if content_input:
-            await content_input.press("End")
-            await content_input.type(tag_text)
+            # 获取当前内容长度，在末尾追加标签
+            current = await content_input.input_value()
+            new_content = current + tag_text if current else tag_text
+            await content_input.fill(new_content)
             await asyncio.sleep(1)
 
     async def _submit(self) -> bool:
         """提交发布"""
-        submit_btn = await self.page.query_selector(
-            'button:has-text("发布"), [class*="publish-btn"], [class*="submit"]'
+        submit_btn = await self.page.wait_for_selector(
+            'button:has-text("发布"), '
+            '[class*="publish-btn"], '
+            '[class*="submit"]:not([class*="cancel"])',
+            timeout=10000
         )
         if submit_btn:
             await submit_btn.click()
-            await asyncio.sleep(3)
+            await asyncio.sleep(5)
 
             # 检查是否发布成功
             try:
+                # 可能出现成功提示或跳转到新页面
                 await self.page.wait_for_selector(
-                    'text="发布成功", [class*="success"]',
+                    'text="发布成功", [class*="success"], text="笔记发布成功"',
                     timeout=15000
                 )
                 return True
             except Exception:
-                return False
+                # 即使没看到成功提示，也可能发布成功了（页面跳转）
+                # 检查是否还在发布页，不在则可能成功
+                await asyncio.sleep(2)
+                return "/publish" not in self.page.url
         return False
 
 

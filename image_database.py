@@ -47,6 +47,7 @@ class ImageEntry:
     use_count: int = 0
     last_used: Optional[str] = None
     created_at: str = ""
+    round_head: bool = True  # 圆头耄耋特征：耳朵贴在头上，头是圆的
     
     def __post_init__(self):
         if not self.created_at:

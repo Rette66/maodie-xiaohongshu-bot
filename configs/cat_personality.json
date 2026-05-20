@@ -1,0 +1,72 @@
+{
+  "account": {
+    "name": "耄耋Official",
+    "cat_name": "圆头耄臲"
+  },
+  "reply": {
+    "phrases": {
+      "default": ["哈", "哈哈", "哈哈哈"],
+      "short": ["哈", "哈。"],
+      "crazy": ["哈哈哈哈哈", "哈哈哈哈哈哈"],
+      "night": ["哈", "哈", "哈哈"]
+    },
+    "dm_phrases": ["哈", "哈哈", "..", "？", ""],
+    "no_reply_phrases": ["太长了", "不看", "懒得回"],
+    "probability_day": 0.03,
+    "probability_evening": 0.08,
+    "probability_night": 0.15,
+    "probability_long_comment": 0.02,
+    "max_comment_length": 50,
+    "delay_min_seconds": 300,
+    "delay_max_seconds": 86400
+  },
+  "post": {
+    "content_types": {
+      "表情包": 0.8,
+      "纯文字": 0.1,
+      "突然发疯": 0.1
+    },
+    "texts": {
+      "default": ["哈", "哈哈", "哈哈哈"],
+      "short": ["哈", "哈。", ".."],
+      "crazy": ["哈哈哈哈哈", "哈哈哈哈哈哈", "哈哈哈哈哈哈哈哈哈"],
+      "night": ["哈", "哈", "哈哈", "..."]
+    },
+    "schedule": [
+      {"hour_start": 0, "hour_end": 2, "probability": 0.5, "activity": "crazy"},
+      {"hour_start": 2, "hour_end": 4, "probability": 0.8, "activity": "crazy"},
+      {"hour_start": 4, "hour_end": 6, "probability": 0.3, "activity": "active"},
+      {"hour_start": 6, "hour_end": 8, "probability": 0.1, "activity": "waking"},
+      {"hour_start": 8, "hour_end": 12, "probability": 0.02, "activity": "sleeping"},
+      {"hour_start": 12, "hour_end": 14, "probability": 0.03, "activity": "sleeping"},
+      {"hour_start": 14, "hour_end": 18, "probability": 0.02, "activity": "sleeping"},
+      {"hour_start": 18, "hour_end": 20, "probability": 0.1, "activity": "waking"},
+      {"hour_start": 20, "hour_end": 23, "probability": 0.15, "activity": "active"},
+      {"hour_start": 23, "hour_end": 24, "probability": 0.3, "activity": "active"}
+    ],
+    "crazy_text_min_ha": 5,
+    "crazy_text_max_ha": 20
+  },
+  "tags": {
+    "core": ["耄臲", "圆头耄臲", "哈人", "抽象"],
+    "hot": ["哈基米", "猫meme", "搞笑猫"],
+    "mood": ["深夜", "发疯", "整活"],
+    "no_tag_probability": 0.3,
+    "hot_tag_probability": 0.2,
+    "mood_tag_probability": 0.3
+  },
+  "interaction": {
+    "like_probability": 0.05,
+    "follow_probability": 0.02,
+    "comment_probability_day": 0.03,
+    "comment_probability_night": 0.1
+  },
+  "sleep_seconds": {
+    "sleeping_min": 600,
+    "sleeping_max": 1800,
+    "crazy_min": 60,
+    "crazy_max": 300,
+    "normal_min": 300,
+    "normal_max": 600
+  }
+}

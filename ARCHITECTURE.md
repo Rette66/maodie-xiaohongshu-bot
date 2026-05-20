@@ -1,402 +1,76 @@
-# 小红书智能运营Agent V2 - 技术架构文档
+# 小红书耄臲账号运营系统架构
 
-## 📐 架构概览
+```mermaid
+C4Container
+    title 耄臲账号运营系统架构
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           SmartXHSAgent (智能主控)                          │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  ┌──────────────────────────────────────────────────────────────────────┐  │
-│  │                     AI智能层 (AI Intelligence Layer)                   │  │
-│  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐   │  │
-│  │  │ ContentGenerator│  │DecisionEngine   │  │ AdaptiveLearning    │   │  │
-│  │  │ (内容生成)      │  │ (决策引擎)      │  │ (自适应学习)        │   │  │
-│  │  └─────────────────┘  └─────────────────┘  └─────────────────────┘   │  │
-│  └──────────────────────────────────────────────────────────────────────┘  │
-│                                                                             │
-│  ┌──────────────────────────────────────────────────────────────────────┐  │
-│  │                     调度层 (Scheduling Layer)                          │  │
-│  │  ┌─────────────────────────────────────────────────────────────────┐ │  │
-│  │  │              IntelligentScheduler (智能调度器)                   │ │  │
-│  │  │  - 任务队列管理  - 优先级调度  - 自动重试  - 依赖管理            │ │  │
-│  │  └─────────────────────────────────────────────────────────────────┘ │  │
-│  └──────────────────────────────────────────────────────────────────────┘  │
-│                                                                             │
-│  ┌──────────────────────────────────────────────────────────────────────┐  │
-│  │                     执行层 (Execution Layer)                           │  │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐             │  │
-│  │  │   Browser   │  │  Publisher  │  │   Interaction    │             │  │
-│  │  │ (浏览器管理) │  │  (发布模块)  │  │   (互动模块)     │             │  │
-│  │  └─────────────┘  └─────────────┘  └─────────────────┘             │  │
-│  └──────────────────────────────────────────────────────────────────────┘  │
-│                                                                             │
-│  ┌──────────────────────────────────────────────────────────────────────┐  │
-│  │                     数据层 (Data Layer)                              │  │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐             │  │
-│  │  │   Config    │  │  Decision   │  │   Performance   │             │  │
-│  │  │   (配置)     │  │   History   │  │   (表现数据)     │             │  │
-│  │  └─────────────┘  └─────────────┘  └─────────────────┘             │  │
-│  └──────────────────────────────────────────────────────────────────────┘  │
-│                                                                             │
-│  ┌──────────────────────────────────────────────────────────────────────┐  │
-│  │                     Playwright (浏览器自动化)                         │  │
-│  └──────────────────────────────────────────────────────────────────────┘  │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+    Person(user, "运营者", "配置任务、审核发布内容、查看报表")
+
+    System_Boundary(xhs_bot, "maodie-xiaohongshu-bot") {
+        Container(smart_agent, "SmartXHSAgent", "Python asyncio", "智能主控，协调内容生成、调度、执行")
+        Container(content_gen, "ContentGenerator", "Python", "基于主题模板生成标题、正文、标签")
+        Container(decision_eng, "DecisionEngine", "Python", "数据驱动决策，自适应调整互动策略")
+        Container(learning, "AdaptiveLearning", "Python", "分析表现数据，持续优化策略")
+        Container(scheduler, "IntelligentScheduler", "Python", "任务队列管理、定时调度、自动重试")
+        Container(xhs_mcp, "小红书MCP客户端", "HTTP API", "调用xhs-mcp服务发布笔记到小红书")
+    }
+
+    System_Ext(xhs_mcp_server, "xhs-mcp (Go)", "小红书API代理服务 (:18060)", "提供笔记发布、图片上传、搜索等API")
+    System_Ext(xhs_platform, "小红书平台", "第三方平台", "实际内容发布和展示")
+    System_Ext(maidie_collector, "maidie-collector", "Python + Playwright", "采集耄臲素材：B站视频截帧、小红书图片、爱给网爬虫")
+
+    System_Ext(bilibili_api, "B站视频API", "数据来源", "视频cid、播放URL下载")
+    System_Ext(xhs_search, "小红书搜索", "数据来源", "素材线索和图片URL")
+    System_Ext(aigei, "爱给网/求表情网", "数据来源", "表情包素材")
+
+    Rel(user, smart_agent, "配置任务")
+    Rel(smart_agent, content_gen, "请求生成内容")
+    Rel(smart_agent, decision_eng, "请求决策")
+    Rel(smart_agent, scheduler, "任务入队/出队")
+    Rel(scheduler, xhs_mcp, "调用发布API")
+    Rel(xhs_mcp, xhs_mcp_server, "HTTP请求")
+    Rel(xhs_mcp_server, xhs_platform, "笔记发布/互动")
+
+    Rel(maidie_collector, bilibili_api, "采集视频数据")
+    Rel(maidie_collector, xhs_search, "读取素材线索")
+    Rel(maidie_collector, aigei, "爬取表情包")
+    Rel(maidie_collector, smart_agent, "素材存入 image_database.json")
+
+    Rel(decision_eng, learning, "记录决策结果")
+    Rel(learning, decision_eng, "优化决策参数")
+    Rel(smart_agent, learning, "反馈表现数据")
 ```
 
----
+## 组件说明
 
-## 🧠 AI智能层详解
+| 组件 | 技术栈 | 职责 |
+|------|--------|------|
+| **SmartXHSAgent** | Python asyncio | 智能主控，协调各模块工作 |
+| **ContentGenerator** | Python 模板引擎 | 生成标题、正文、标签 |
+| **DecisionEngine** | Python | 决策是否互动、何时发布 |
+| **AdaptiveLearning** | Python 数据分析 | 分析表现，优化策略 |
+| **IntelligentScheduler** | Python | 任务队列、定时触发、自动重试 |
+| **xhs-mcp** | HTTP API 客户端 | 调用 xhs-mcp 服务发布笔记 |
+| **xhs-mcp (Go)** | Go 独立服务 | 绕过反爬，直接操作小红书API |
+| **maidie-collector** | Python + Playwright | 采集耄臲素材（与本项目独立） |
 
-### 1. ContentGenerator (AI内容生成器)
-
-**功能：**
-- 基于主题模板生成标题和正文
-- 智能标签推荐
-- 最佳发布时间预测
-- 内容质量评分
-
-**架构设计：**
-```
-ContentGenerator
-├── THEMES (内容主题库)
-│   ├── lifestyle (生活方式)
-│   ├── food (美食探店)
-│   ├── travel (旅行分享)
-│   ├── fashion (时尚穿搭)
-│   └── tech (数码科技)
-│
-├── TITLE_TEMPLATES (标题模板库)
-│   └── 每个主题多个标题模板
-│
-├── CONTENT_TEMPLATES (正文模板库)
-│   └── 每个主题多个正文结构
-│
-└── Methods
-    ├── generate_content()     # 生成完整内容
-    ├── _generate_title()      # 生成标题
-    ├── _generate_body()       # 生成正文
-    ├── _generate_tags()       # 生成标签
-    └── _calculate_confidence() # 计算置信度
-```
-
-**核心算法：**
-- 模板填充 + 随机变量选择
-- 基于小红书用户活跃时间预测最佳发布时机
-- 多维度质量评分（长度、关键词匹配、格式）
-
-### 2. DecisionEngine (智能决策引擎)
-
-**功能：**
-- 基于历史数据做决策
-- 动态调整操作策略
-- 预测最佳行动时机
-- 风险评估和控制
-
-**决策流程：**
-```
-输入: DecisionContext (账号状态、目标内容、时间等)
-     │
-     ▼
-┌─────────────────┐
-│ 评估必要性       │ ← 当前是否应该互动?
-└────────┬────────┘
-         │
-    是 ──┴── 否
-    │         │
-    ▼         ▼
-┌────────┐  ┌────────┐
-│ 决策   │  │ 跳过   │
-│ 分析   │  │ 操作   │
-└───┬────┘  └────────┘
-    │
-    ▼
-┌─────────────────┐
-│ 做出行动决策     │
-│ - 点赞?         │
-│ - 评论?         │
-│ - 关注?         │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ 输出: ActionDecision │
-└─────────────────┘
-```
-
-**自适应机制：**
-- 根据账号阶段（新账号/成长期/成熟期）调整策略
-- 根据历史成功率动态调整概率参数
-- 基于时段活跃度调整行动优先级
-
-### 3. AdaptiveLearningSystem (自适应学习系统)
-
-**功能：**
-- 分析内容表现数据
-- 识别成功模式
-- 自动优化策略
-- A/B测试支持
-
-**学习流程：**
-```
-新数据 → 分析 → 模式识别 → 策略生成 → 应用
-  ↑                              │
-  └────────── 反馈循环 ←─────────┘
-```
-
-**分析维度：**
-| 维度 | 分析内容 | 优化方向 |
-|------|---------|---------|
-| 主题表现 | 各主题的平均互动率 | 选择最佳主题 |
-| 时段表现 | 不同时间的互动差异 | 选择最佳时间 |
-| 标签效果 | 标签带来的流量 | 优化标签策略 |
-| 互动模式 | 点赞/评论/关注的转化 | 优化互动策略 |
-
----
-
-## 📅 调度层详解
-
-### IntelligentScheduler (智能调度器)
-
-**核心功能：**
-- 任务优先级管理
-- 定时执行
-- 自动重试
-- 依赖管理
-
-**任务类型：**
-| 任务类型 | 优先级 | 说明 |
-|---------|-------|------|
-| publish_content | HIGH | 发布内容 |
-| interact_by_keyword | MEDIUM | 关键词互动 |
-| collect_analytics | LOW | 收集数据 |
-| feed_browsing | BACKGROUND | 推荐流浏览 |
-
-**调度策略：**
-- 任务分散在全天高峰时段
-- 失败任务自动重试（最多3次）
-- 支持手动添加临时任务
-
----
-
-## 🔄 数据流
+## 数据流向
 
 ```
-用户操作 / 定时触发
-         │
-         ▼
-┌─────────────────┐
-│ SmartXHSAgent  │
-│  (主控制器)     │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐     ┌─────────────────┐
-│ DecisionEngine  │ ──▶ │ 决策分析        │
-│ (决策引擎)      │     │ - 是否行动      │
-└────────┬────────┘     │ - 行动类型      │
-         │              │ - 参数设置      │
-         ▼              └─────────────────┘
-         │
-         ▼
-┌─────────────────┐     ┌─────────────────┐
-│ ContentGenerator│ ──▶ │ 内容生成        │
-│ (内容生成)      │     │ - 标题          │
-└────────┬────────┘     │ - 正文          │
-         │              │ - 标签          │
-         ▼              └─────────────────┘
-         │
-         ▼
-┌─────────────────┐     ┌─────────────────┐
-│ TaskScheduler   │ ──▶ │ 任务入队        │
-│ (任务调度)      │     │ - 优先级        │
-└────────┬────────┘     │ - 执行时间      │
-         │              └─────────────────┘
-         ▼
-┌─────────────────┐
-│ XHSAgent        │
-│ (执行层)        │
-│ - 浏览器操作    │
-│ - 页面交互      │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ LearningSystem  │ ◀── 反馈循环
-│ (学习系统)      │
-│ - 记录表现      │
-│ - 分析效果      │
-│ - 优化策略      │
-└─────────────────┘
+素材采集 (maidie-collector)
+    ├── B站视频API → requests下载 → ffmpeg截帧
+    ├── 小红书搜索 → xhs-mcp下载图片
+    └── 爱给网/求表情网 → Playwright爬取
+              ↓
+    image_database.json (素材库)
+              ↓
+    SmartXHSAgent (读取待发图片)
+              ↓
+    ContentGenerator (生成标题/正文/标签)
+              ↓
+    IntelligentScheduler (定时发布)
+              ↓
+    xhs-mcp → 小红书平台 (发布笔记)
+              ↓
+    AdaptiveLearning (记录表现，优化策略)
 ```
-
----
-
-## 📊 升级对比
-
-| 能力 | V1 (基础版) | V2 (智能版) |
-|------|-------------|-------------|
-| **内容生成** | 手动准备 | AI自动生成 |
-| **互动策略** | 固定概率 | 数据驱动自适应 |
-| **发布时间** | 手动设置 | AI预测最佳时机 |
-| **异常处理** | 简单try-catch | 智能重试+学习 |
-| **任务调度** | 手动触发 | 全自动定时调度 |
-| **策略优化** | 无 | 持续学习优化 |
-| **决策逻辑** | if-else规则 | 机器学习模型 |
-
----
-
-## 🔧 技术栈
-
-```
-基础层:
-├── Python 3.8+
-├── Playwright (浏览器自动化)
-└── asyncio (异步处理)
-
-AI层:
-├── numpy (数据分析)
-└── 自定义ML模型 (决策/学习)
-
-数据层:
-├── JSON (配置/历史)
-└── pathlib (文件管理)
-
-可选增强:
-├── OpenAI API (更强大的内容生成)
-├── LangChain (Agent编排)
-└── Redis (任务队列)
-```
-
----
-
-## 📁 项目结构 V2
-
-```
-xiaohongshu_agent_v2/
-├── __init__.py
-├── smart_agent.py          # 智能Agent主程序
-│
-├── ai/                     # AI智能层
-│   ├── __init__.py
-│   ├── content_generator.py    # AI内容生成
-│   ├── decision_engine.py      # 智能决策
-│   └── learning_system.py      # 自适应学习
-│
-├── scheduler/               # 调度层
-│   ├── __init__.py
-│   └── task_scheduler.py       # 智能调度
-│
-├── core/                   # 执行层 (复用V1)
-│   └── (来自 xiaohongshu_agent)
-│
-├── data/                   # 数据存储
-│   ├── learning/           # 学习数据
-│   └── scheduler/          # 调度数据
-│
-└── ARCHITECTURE.md         # 本文档
-```
-
----
-
-## 🚀 使用示例
-
-```python
-import asyncio
-from smart_agent import SmartXHSAgent
-
-async def main():
-    # 创建智能Agent
-    agent = SmartXHSAgent()
-    
-    # 初始化
-    await agent.initialize()
-    
-    # 登录
-    await agent.login()
-    
-    # 方式1: 智能发布
-    await agent.smart_publish(
-        theme="food",
-        topic="咖啡店探店"
-    )
-    
-    # 方式2: 智能互动
-    await agent.smart_interact(
-        keyword="美食",
-        max_notes=10
-    )
-    
-    # 方式3: 生成AI内容（不发布）
-    contents = await agent.generate_ai_content(
-        theme="travel",
-        topic="日本旅游",
-        count=5
-    )
-    for c in contents:
-        print(f"标题: {c.title}")
-        print(f"内容: {c.content[:100]}...")
-        print(f"标签: {c.tags}")
-        print(f"建议时间: {c.best_posting_time}")
-        print("---")
-    
-    # 方式4: 全自动运营
-    await agent.start_auto_operation({
-        "content_publish": {"count": 2, "themes": ["food", "travel"]},
-        "interaction": {"keywords": ["美食", "旅行"], "count_per_keyword": 5},
-        "analytics": {"enabled": True},
-        "feed_browsing": {"duration_minutes": 30}
-    })
-
-asyncio.run(main())
-```
-
----
-
-## ⚙️ 配置说明
-
-```python
-# 决策引擎配置
-decision_params = {
-    "base_like_probability": 0.7,      # 基础点赞概率
-    "base_comment_probability": 0.3,   # 基础评论概率
-    "base_follow_probability": 0.1,    # 基础关注概率
-}
-
-# 调度器配置
-scheduler_config = {
-    "max_concurrent_tasks": 1,         # 最大并发任务
-    "default_retry_delay": 300,        # 重试延迟(秒)
-    "max_daily_tasks": 50,             # 每日最大任务数
-    "peak_hours": [7, 8, 12, 13, 18, 19, 20, 21, 22],  # 高峰时段
-}
-```
-
----
-
-## 🎯 未来扩展方向
-
-1. **接入大语言模型**
-   - 使用GPT-4/Gemini生成更自然的内容
-   - 智能回复评论和私信
-
-2. **多账号管理**
-   - 账号矩阵管理
-   - 跨账号内容分发
-
-3. **更多AI能力**
-   - 图片生成 (DALL-E, Stable Diffusion)
-   - 视频脚本生成
-   - SEO优化
-
-4. **数据分析增强**
-   - 竞品分析
-   - 趋势预测
-   - 受众画像
-
-5. **运营自动化扩展**
-   - 私域流量运营
-   - 直播运营
-   - 电商运营

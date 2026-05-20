@@ -2,6 +2,7 @@
 耄耋Official - 猫的逻辑Agent配置
 核心思想：让圆头耄耋本猫来运营这个账号
 """
+from .personality_loader import get_cat_config, CatPersonalityConfig
 import random
 from datetime import datetime
 from typing import Optional, List, Dict
